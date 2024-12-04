@@ -1,6 +1,6 @@
 module grpc_server
 
-go 1.21.5
+go 1.20
 
 require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0

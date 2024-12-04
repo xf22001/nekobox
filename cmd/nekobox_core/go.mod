@@ -1,6 +1,6 @@
 module nekobox_core
 
-go 1.21.5
+go 1.20
 
 require (
 	github.com/sagernet/sing-box v1.0.0 // replaced
