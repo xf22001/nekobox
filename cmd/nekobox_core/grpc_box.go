@@ -96,6 +96,9 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 		var cancel context.CancelFunc
 		if in.Config != nil {
 			// Test instance
+			if grpc_server.Debug {
+				log.Println("UrlTest:", in.Config.CoreConfig)
+			}
 			i, cancel, err = boxmain.Create([]byte(in.Config.CoreConfig))
 			if i != nil {
 				defer i.Close()
@@ -116,10 +119,25 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 	} else if in.Mode == gen.TestMode_TcpPing {
 		out.Ms, err = speedtest.TcpPing(in.Address, in.Timeout)
 	} else if in.Mode == gen.TestMode_FullTest {
-		i, cancel, err := boxmain.Create([]byte(in.Config.CoreConfig))
-		if i != nil {
-			defer i.Close()
-			defer cancel()
+		var i *box.Box
+		if in.Config != nil {
+			if grpc_server.Debug {
+				log.Println("FullTest:", in.Config.CoreConfig)
+			}
+			i, cancel, err := boxmain.Create([]byte(in.Config.CoreConfig))
+			if i != nil {
+				defer i.Close()
+				defer cancel()
+			}
+			if err != nil {
+				return
+			}
+		} else {
+			// Test running instance
+			i = instance
+			if i == nil {
+				return
+			}
 		}
 		if err != nil {
 			return
