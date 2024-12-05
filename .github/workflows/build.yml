@@ -1,0 +1,81 @@
+name: Build and Upload Artifacts
+
+on:
+  workflow_dispatch:  # 手动触发
+    inputs:
+      os:
+        description: 'Select OS'
+        required: true
+        default: 'ubuntu-20.04'
+        type: choice
+        options:
+          - ubuntu-20.04
+          - ubuntu-latest
+
+jobs:
+  build:
+    runs-on: ${{ github.event.inputs.os }}
+    strategy:
+      matrix:
+        arch: [amd64,arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'  # 根据需要设置 Go 版本
+
+      - name: Clone sing-box repository
+        run: |
+          git clone --branch module https://github.com/xf22001/sing-box.git sing-box
+
+      - name: Set environment variables
+        run: |
+          echo "DEPLOYMENT=$(pwd)/build" >> $GITHUB_ENV
+          echo "GOOS=${{ github.event.inputs.os == 'windows-latest' && 'windows' || 'linux' }}" >> $GITHUB_ENV
+          echo "GOARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+          
+          echo "TAGS_GO120=with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls" >> $GITHUB_ENV
+          echo "TAGS_GO121=with_ech" >> $GITHUB_ENV
+          echo "TAGS=$TAGS_GO120,$TAGS_GO121" >> $GITHUB_ENV
+
+          pushd sing-box
+          echo "GOHOSTOS=$(go env GOHOSTOS)" >> $GITHUB_ENV
+          echo "GOHOSTARCH=$(go env GOHOSTARCH)" >> $GITHUB_ENV
+          echo "VERSION=$(CGO_ENABLED=0 GOOS=$(go env GOHOSTOS) GOARCH=$(go env GOHOSTARCH) go run ./cmd/internal/read_tag)" >> $GITHUB_ENV
+          popd
+
+      - name: Build the project
+        run: |
+          if [ "$GOOS" == "windows" ]; then
+            if [ "$GOARCH" == "amd64" ]; then
+              DEST="$DEPLOYMENT/windows64"
+            elif [ "$GOARCH" == "arm64" ]; then
+              DEST="$DEPLOYMENT/windows-arm64"
+            fi
+          else
+            if [ "$GOARCH" == "amd64" ]; then
+              DEST="$DEPLOYMENT/linux64"
+            elif [ "$GOARCH" == "arm64" ]; then
+              DEST="$DEPLOYMENT/linux-arm64"
+            fi
+          fi
+          
+          if [ -z "$DEST" ]; then
+              echo "Please set GOOS and GOARCH"
+              exit 1
+          fi
+
+          mkdir -p "$DEST"
+
+          cd cmd/nekobox_core
+
+          go build -v -o "$DEST" -trimpath -ldflags "-w -s -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.event.inputs.os }}-${{ matrix.arch }}
+          path: ${{ env.DEPLOYMENT }}
