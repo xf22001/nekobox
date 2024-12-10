@@ -8,6 +8,17 @@ import (
 
 var Debug bool
 
+// platform
+
+var RunMode int
+
+const (
+	RunMode_Other = iota
+	RunMode_NekoRay_Core
+	RunMode_NekoBox_Core
+	RunMode_NekoBoxForAndroid
+)
+
 // proxy (if specifiedInstance==nil, access without proxy)
 
 var GetCurrentInstance func() interface{}

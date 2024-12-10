@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 
+	"libneko/neko_common"
 	"libneko/syscallw"
 )
 
@@ -49,6 +50,10 @@ func SetupLog(maxSize int, path string) (err error) {
 			}
 			syscallw.Flock(fd, syscallw.LOCK_UN)
 		}
+		if neko_common.RunMode == neko_common.RunMode_NekoBoxForAndroid {
+			// redirect stderr
+			syscallw.Dup3(fd, int(os.Stderr.Fd()), 0)
+		}
 	}
 
 	if err != nil {
@@ -58,7 +63,11 @@ func SetupLog(maxSize int, path string) (err error) {
 
 	//
 	LogWriter = &logWriter{}
-	LogWriter.writers = []io.Writer{os.Stdout, f}
+	if neko_common.RunMode == neko_common.RunMode_NekoBoxForAndroid {
+		LogWriter.writers = []io.Writer{NB4AGuiLogWriter, f}
+	} else {
+		LogWriter.writers = []io.Writer{os.Stdout, f}
+	}
 	// setup std log
 	log.SetFlags(log.LstdFlags | log.LUTC)
 	log.SetOutput(LogWriter)
