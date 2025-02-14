@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"grpc_server"
 	"grpc_server/gen"
@@ -13,7 +12,6 @@ import (
 
 	box "github.com/sagernet/sing-box"
 	boxmain "github.com/sagernet/sing-box/cmd/sing-box"
-	"github.com/sagernet/sing-box/option"
 
 	"log"
 )
@@ -47,13 +45,6 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 	if instance != nil {
 		// Logger
 		instance.SetLogWritter(neko_log.LogWriter)
-		// V2ray Service
-		if in.StatsOutbounds != nil {
-			instance.Router().SetV2RayServer(boxapi.NewSbV2rayServer(option.V2RayStatsServiceOptions{
-				Enabled:   true,
-				Outbounds: in.StatsOutbounds,
-			}))
-		}
 	}
 
 	return
@@ -152,9 +143,6 @@ func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *ge
 	out = &gen.QueryStatsResp{}
 
 	if instance != nil {
-		if ss, ok := instance.Router().V2RayServer().(*boxapi.SbV2rayServer); ok {
-			out.Traffic = ss.QueryStats(fmt.Sprintf("outbound>>>%s>>>traffic>>>%s", in.Tag, in.Direct))
-		}
 	}
 
 	return
