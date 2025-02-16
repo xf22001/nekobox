@@ -45,6 +45,8 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 	if instance != nil {
 		// Logger
 		instance.SetLogWritter(neko_log.LogWriter)
+	} else {
+		log.Println("err:", err)
 	}
 
 	return
