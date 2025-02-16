@@ -11,7 +11,8 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/nekobox_core",
             "args": ["nekobox", "-debug", "-token", "xiaofei"], // 传递给程序的参数
-            "cwd": "${workspaceFolder}" // 设置当前工作目录
+            "cwd": "${workspaceFolder}", // 设置当前工作目录
+            "buildFlags": "-tags 'with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls,with_ech'" // 添加 tags 和调试信息
         },
     ]
 }
