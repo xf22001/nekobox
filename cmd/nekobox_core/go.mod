@@ -2,8 +2,6 @@ module nekobox_core
 
 go 1.23.1
 
-toolchain go1.23.6
-
 require (
 	github.com/sagernet/sing-box v1.0.0 // replaced
 	grpc_server v1.0.0
