@@ -147,10 +147,12 @@ func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *ge
 	out = &gen.QueryStatsResp{}
 
 	if instance != nil {
-		if vs := instance.Router().GetNekoTracker(); vs != nil {
+		if vs := instance.Router().GetTracker(); vs != nil {
 			if ss, ok := vs.(*v2rayapi.StatsService); ok {
 				var err error
+				//log.Println("tag:", in.Tag, "direct:", in.Direct)
 				out.Traffic, err = ss.GetNekoStats(ctx, fmt.Sprintf("outbound>>>%s>>>traffic>>>%s", in.Tag, in.Direct), true)
+				//log.Println("traffic:", out.Traffic)
 				if err != nil {
 					log.Println("GetNekoStats", err.Error())
 				}
