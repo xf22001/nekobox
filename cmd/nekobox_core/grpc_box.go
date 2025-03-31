@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"grpc_server"
 	"grpc_server/gen"
@@ -12,6 +13,7 @@ import (
 
 	box "github.com/sagernet/sing-box"
 	boxmain "github.com/sagernet/sing-box/cmd/sing-box"
+	"github.com/sagernet/sing-box/experimental/v2rayapi"
 
 	"log"
 )
@@ -145,6 +147,15 @@ func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *ge
 	out = &gen.QueryStatsResp{}
 
 	if instance != nil {
+		if vs := instance.Router().GetNekoTracker(); vs != nil {
+			if ss, ok := vs.(*v2rayapi.StatsService); ok {
+				var err error
+				out.Traffic, err = ss.GetNekoStats(ctx, fmt.Sprintf("outbound>>>%s>>>traffic>>>%s", in.Tag, in.Direct), true)
+				if err != nil {
+					log.Println("GetNekoStats", err.Error())
+				}
+			}
+		}
 	}
 
 	return
