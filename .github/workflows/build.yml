@@ -6,10 +6,11 @@ on:
       os:
         description: 'Select OS'
         required: true
-        default: 'ubuntu-20.04'
+        default: 'ubuntu-22.04'
         type: choice
         options:
-          - ubuntu-20.04
+          - ubuntu-22.04
+          - ubuntu-24.04
           - ubuntu-latest
 
 jobs:
