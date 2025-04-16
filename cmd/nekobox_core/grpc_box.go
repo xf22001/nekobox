@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -13,6 +15,7 @@ import (
 
 	box "github.com/sagernet/sing-box"
 	boxmain "github.com/sagernet/sing-box/cmd/sing-box"
+	"github.com/sagernet/sing-box/experimental/clashapi"
 	"github.com/sagernet/sing-box/experimental/v2rayapi"
 
 	"log"
@@ -166,6 +169,20 @@ func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *ge
 func (s *server) ListConnections(ctx context.Context, in *gen.EmptyReq) (*gen.ListConnectionsResp, error) {
 	out := &gen.ListConnectionsResp{
 		// TODO upstream api
+	}
+	for _, vs := range instance.Router().GetTrackers() {
+		if cs, ok := vs.(*clashapi.Server); ok {
+			connections := cs.TrafficManager().Connections()
+			buf := &bytes.Buffer{}
+			buf.Reset()
+
+			if err := json.NewEncoder(buf).Encode(connections); err != nil {
+				return out, err
+			}
+			out = &gen.ListConnectionsResp{
+				NekorayConnectionsJson: buf.String(),
+			}
+		}
 	}
 	return out, nil
 }
