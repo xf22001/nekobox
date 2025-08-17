@@ -77,7 +77,7 @@ require (
 	github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a // indirect
 	github.com/sagernet/nftables v0.3.0-beta.4 // indirect
 	github.com/sagernet/quic-go v0.52.0-beta.1 // indirect
-	github.com/sagernet/sing v0.7.0-beta.2 // indirect
+	github.com/sagernet/sing v0.7.5 // indirect
 	github.com/sagernet/sing-mux v0.3.2 // indirect
 	github.com/sagernet/sing-quic v0.5.0-beta.3 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.8 // indirect
