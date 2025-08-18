@@ -6,7 +6,7 @@
 #   文件名称：compile.sh
 #   创 建 者：肖飞
 #   创建日期：2024年12月04日 星期三 15时14分18秒
-#   修改日期：2025年08月05日 星期二 13时33分51秒
+#   修改日期：2025年08月18日 星期一 10时18分46秒
 #   描    述：
 #
 #================================================================
@@ -14,7 +14,7 @@ function main() {
 	export DEPLOYMENT=$(pwd)/build
 	export GOOS=linux
 	export GOARCH=amd64
-	export TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale"
+	export TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale,with_v2ray_api"
 
 	pushd sing-box
 	export GOHOSTOS="$(go env GOHOSTOS)"
