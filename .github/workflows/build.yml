@@ -38,7 +38,7 @@ jobs:
           echo "GOOS=${{ github.event.inputs.os == 'windows-latest' && 'windows' || 'linux' }}" >> $GITHUB_ENV
           echo "GOARCH=${{ matrix.arch }}" >> $GITHUB_ENV
           
-          echo "TAGS=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale,with_v2ray_api" >> $GITHUB_ENV
+          echo "TAGS=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_v2ray_api,with_tailscale" >> $GITHUB_ENV
 
           pushd sing-box
           echo "GOHOSTOS=$(go env GOHOSTOS)" >> $GITHUB_ENV
