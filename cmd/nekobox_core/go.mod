@@ -77,7 +77,7 @@ require (
 	github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a // indirect
 	github.com/sagernet/nftables v0.3.0-beta.4 // indirect
 	github.com/sagernet/quic-go v0.52.0-beta.1 // indirect
-	github.com/sagernet/sing v0.7.6-0.20250815070458-d33ece7a184f // indirect
+	github.com/sagernet/sing v0.7.6-0.20250825114712-2aeec120ce28 // indirect
 	github.com/sagernet/sing-mux v0.3.3 // indirect
 	github.com/sagernet/sing-quic v0.5.0 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.8 // indirect
@@ -86,7 +86,7 @@ require (
 	github.com/sagernet/sing-tun v0.7.0-beta.1 // indirect
 	github.com/sagernet/sing-vmess v0.2.7 // indirect
 	github.com/sagernet/smux v1.5.34-mod.2 // indirect
-	github.com/sagernet/tailscale v1.80.3-mod.5 // indirect
+	github.com/sagernet/tailscale v1.80.3-sing-box-1.12-mod.1 // indirect
 	github.com/sagernet/wireguard-go v0.0.1-beta.7 // indirect
 	github.com/sagernet/ws v0.0.0-20231204124109-acfe8907c854 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
