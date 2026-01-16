@@ -32,7 +32,6 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 		out = &gen.ErrorResp{}
 		if err != nil {
 			out.Error = err.Error()
-			instance = nil
 		}
 	}()
 
@@ -40,21 +39,26 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 		log.Println("Start:", in.CoreConfig)
 	}
 
-	if instance != nil {
-		err = errors.New("instance already started")
-		return
+	currentInstance := instanceManager.GetInstance()
+	if currentInstance != nil {
+		return &gen.ErrorResp{Error: "instance already started"}, nil
 	}
 
-	instance, instance_cancel, err = boxmain.Create([]byte(in.CoreConfig))
+	newInstance, newCancel, err := boxmain.Create([]byte(in.CoreConfig))
+	if err != nil {
+		return &gen.ErrorResp{Error: err.Error()}, nil
+	}
 
-	if instance != nil {
+	if newInstance != nil {
 		// Logger
-		instance.SetLogWritter(neko_log.LogWriter)
+		newInstance.SetLogWritter(neko_log.LogWriter)
+		instanceManager.SetInstance(newInstance, newCancel)
 	} else {
 		log.Println("err:", err)
+		err = errors.New("failed to create instance")
 	}
 
-	return
+	return &gen.ErrorResp{}, nil
 }
 
 func (s *server) Stop(ctx context.Context, in *gen.EmptyReq) (out *gen.ErrorResp, _ error) {
@@ -67,14 +71,7 @@ func (s *server) Stop(ctx context.Context, in *gen.EmptyReq) (out *gen.ErrorResp
 		}
 	}()
 
-	if instance == nil {
-		return
-	}
-
-	instance_cancel()
-	instance.Close()
-
-	instance = nil
+	instanceManager.ClearInstance()
 
 	return
 }
@@ -145,7 +142,8 @@ func (s *server) getOrCreateInstance(config *gen.LoadConfigReq) (*box.Box, func(
 		return i, cleanup, nil
 	} else {
 		// 使用运行中的实例
-		if instance == nil {
+		instance, exists := instanceManager.GetOrEmpty()
+		if !exists {
 			return nil, nil, errors.New("no running instance available")
 		}
 		return instance, nil, nil
@@ -155,8 +153,8 @@ func (s *server) getOrCreateInstance(config *gen.LoadConfigReq) (*box.Box, func(
 func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *gen.QueryStatsResp, _ error) {
 	out = &gen.QueryStatsResp{}
 
-	if instance != nil {
-		for _, vs := range instance.Router().GetTrackers() {
+	instanceManager.ExecuteWithInstance(func(i *box.Box) error {
+		for _, vs := range i.Router().GetTrackers() {
 			if ss, ok := vs.(*v2rayapi.StatsService); ok {
 				var err error
 				//log.Println("tag:", in.Tag, "direct:", in.Direct)
@@ -167,7 +165,8 @@ func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *ge
 				}
 			}
 		}
-	}
+		return nil
+	})
 
 	return
 }
@@ -176,19 +175,28 @@ func (s *server) ListConnections(ctx context.Context, in *gen.EmptyReq) (*gen.Li
 	out := &gen.ListConnectionsResp{
 		// TODO upstream api
 	}
-	for _, vs := range instance.Router().GetTrackers() {
-		if cs, ok := vs.(*clashapi.Server); ok {
-			connections := cs.TrafficManager().Connections()
-			buf := &bytes.Buffer{}
-			buf.Reset()
 
-			if err := json.NewEncoder(buf).Encode(connections); err != nil {
-				return out, err
-			}
-			out = &gen.ListConnectionsResp{
-				NekorayConnectionsJson: buf.String(),
+	err := instanceManager.ExecuteWithInstance(func(i *box.Box) error {
+		for _, vs := range i.Router().GetTrackers() {
+			if cs, ok := vs.(*clashapi.Server); ok {
+				connections := cs.TrafficManager().Connections()
+				buf := &bytes.Buffer{}
+				buf.Reset()
+
+				if err := json.NewEncoder(buf).Encode(connections); err != nil {
+					return err
+				}
+				out = &gen.ListConnectionsResp{
+					NekorayConnectionsJson: buf.String(),
+				}
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return out, err
 	}
+
 	return out, nil
 }
