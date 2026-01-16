@@ -13,6 +13,14 @@ func CreateProxyHttpClient(box *box.Box) *http.Client {
 	transport := &http.Transport{
 		TLSHandshakeTimeout:   time.Second * 3,
 		ResponseHeaderTimeout: time.Second * 3,
+		DialTLSContext: (&net.Dialer{
+			Timeout:   time.Second * 3,
+			KeepAlive: time.Second * 5,
+		}).DialContext,
+		ExpectContinueTimeout: time.Second * 1,
+		IdleConnTimeout:       time.Second * 5,
+		MaxIdleConns:          1,
+		MaxIdleConnsPerHost:   1,
 	}
 
 	if box != nil {
@@ -23,6 +31,7 @@ func CreateProxyHttpClient(box *box.Box) *http.Client {
 
 	client := &http.Client{
 		Transport: transport,
+		Timeout:   time.Second * 10, // Default timeout for the entire request
 	}
 
 	return client

@@ -89,61 +89,67 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 		}
 	}()
 
-	if in.Mode == gen.TestMode_UrlTest {
-		var i *box.Box
-		var cancel context.CancelFunc
-		if in.Config != nil {
-			// Test instance
-			if grpc_server.Debug {
-				log.Println("UrlTest:", in.Config.CoreConfig)
-			}
-			i, cancel, err = boxmain.Create([]byte(in.Config.CoreConfig))
-			if i != nil {
-				defer i.Close()
-				defer cancel()
-			}
-			if err != nil {
-				return
-			}
-		} else {
-			// Test running instance
-			i = instance
-			if i == nil {
-				return
-			}
+	switch in.Mode {
+	case gen.TestMode_UrlTest:
+		i, cleanup, err := s.getOrCreateInstance(in.Config)
+		if err != nil {
+			return &gen.TestResp{Error: err.Error()}, nil
+		}
+		if cleanup != nil {
+			defer cleanup()
+		}
+		if i == nil {
+			return out, nil
 		}
 		// Latency
 		out.Ms, err = speedtest.UrlTest(boxapi.CreateProxyHttpClient(i), in.Url, in.Timeout, speedtest.UrlTestStandard_RTT)
-	} else if in.Mode == gen.TestMode_TcpPing {
+	case gen.TestMode_TcpPing:
 		out.Ms, err = speedtest.TcpPing(in.Address, in.Timeout)
-	} else if in.Mode == gen.TestMode_FullTest {
-		var i *box.Box
-		if in.Config != nil {
-			if grpc_server.Debug {
-				log.Println("FullTest:", in.Config.CoreConfig)
-			}
-			i, cancel, err := boxmain.Create([]byte(in.Config.CoreConfig))
-			if i != nil {
-				defer i.Close()
-				defer cancel()
-			}
-			if err != nil {
-				return
-			}
-		} else {
-			// Test running instance
-			i = instance
-			if i == nil {
-				return
-			}
-		}
+	case gen.TestMode_FullTest:
+		i, cleanup, err := s.getOrCreateInstance(in.Config)
 		if err != nil {
-			return
+			return &gen.TestResp{Error: err.Error()}, nil
+		}
+		if cleanup != nil {
+			defer cleanup()
+		}
+		if i == nil {
+			return out, nil
 		}
 		return grpc_server.DoFullTest(ctx, in, i)
 	}
 
 	return
+}
+
+// getOrCreateInstance 获取现有实例或创建新实例
+func (s *server) getOrCreateInstance(config *gen.LoadConfigReq) (*box.Box, func(), error) {
+	if config != nil {
+		// 创建临时实例
+		if grpc_server.Debug {
+			log.Println("Creating temporary instance for test")
+		}
+		i, cancel, err := boxmain.Create([]byte(config.CoreConfig))
+		if err != nil {
+			return nil, nil, err
+		}
+		if i == nil {
+			return nil, nil, errors.New("instance creation failed")
+		}
+
+		// 返回实例和清理函数
+		cleanup := func() {
+			cancel()
+			i.Close()
+		}
+		return i, cleanup, nil
+	} else {
+		// 使用运行中的实例
+		if instance == nil {
+			return nil, nil, errors.New("no running instance available")
+		}
+		return instance, nil, nil
+	}
 }
 
 func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (out *gen.QueryStatsResp, _ error) {
