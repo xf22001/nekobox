@@ -32,6 +32,7 @@ enum TestMode {
   TcpPing = 0;
   UrlTest = 1;
   FullTest = 2;
+  CheckProxy = 3;
 }
 
 message TestReq {

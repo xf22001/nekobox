@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"grpc_server"
 	"grpc_server/gen"
@@ -114,6 +115,35 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 			return out, nil
 		}
 		return grpc_server.DoFullTest(ctx, in, i)
+	case gen.TestMode_CheckProxy:
+		i, cleanup, err := s.getOrCreateInstance(in.Config)
+		if err != nil {
+			return &gen.TestResp{Error: err.Error()}, nil
+		}
+		if cleanup != nil {
+			defer cleanup()
+		}
+		if i == nil {
+			return out, nil
+		}
+
+		// 1. Fetch IP information
+		client := boxapi.CreateProxyHttpClient(i)
+		// Use the same timeout for IP info fetch, or a reasonable default
+		fetchTimeout := time.Duration(in.Timeout) * time.Millisecond
+		if fetchTimeout == 0 {
+			fetchTimeout = 10 * time.Second // Default timeout for IP info fetch
+		}
+		client.Timeout = fetchTimeout
+
+		info, ipInfoErr := FetchIPInfo(ctx, client)
+		if ipInfoErr != nil {
+			out.Error = fmt.Sprintf("IP info fetch failed: %v", ipInfoErr)
+			return
+		}
+
+		// Combine results
+		out.FullReport = fmt.Sprintf("%s (%s, %s)", info.Query, info.Country, info.City)
 	}
 
 	return
