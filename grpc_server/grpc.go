@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"nekobox/grpc_server/auth"
 	"nekobox/grpc_server/gen"
-	"log"
 	"net"
 	"os"
 	"runtime"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
+	"github.com/sagernet/sing-box/log"
 	"google.golang.org/grpc"
 )
 
@@ -45,17 +45,17 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 	go func() {
 		parent, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			log.Fatalln("find parent:", err)
+			log.Fatal("find parent:", err)
 		}
 		if runtime.GOOS == "windows" {
 			state, err := parent.Wait()
-			log.Fatalln("parent exited:", state, err)
+			log.Fatal("parent exited:", state, err)
 		} else {
 			for {
 				time.Sleep(time.Second * 10)
 				err = parent.Signal(syscall.Signal(0))
 				if err != nil {
-					log.Fatalln("parent exited:", err)
+					log.Fatal("parent exited:", err)
 				}
 			}
 		}
@@ -67,7 +67,7 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 	// GRPC
 	lis, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(*_port))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatal("failed to listen: ", err)
 	}
 
 	token := *_token
@@ -96,8 +96,8 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 
 	name := "nekobox_core"
 
-	log.Printf("%s grpc server listening at %v\n", name, lis.Addr())
+	log.Info(name, " grpc server listening at ", lis.Addr())
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Fatal("failed to serve: ", err)
 	}
 }
