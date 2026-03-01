@@ -1,4 +1,4 @@
-package syscallw
+package platform
 
 const (
 	LOCK_EX = 0x2

@@ -1,4 +1,4 @@
-package syscallw
+package platform
 
 func Flock(fd int, how int) (err error) {
 	// not needed

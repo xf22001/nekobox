@@ -5,8 +5,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"grpc_server/auth"
-	"grpc_server/gen"
+	"nekobox/grpc_server/auth"
+	"nekobox/grpc_server/gen"
 	"log"
 	"net"
 	"os"
@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"google.golang.org/grpc"
 )
 

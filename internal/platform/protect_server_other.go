@@ -1,6 +1,6 @@
 //go:build !linux
 
-package protect_server
+package platform
 
 import "io"
 

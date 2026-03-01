@@ -1,4 +1,4 @@
-package protect_server
+package platform
 
 import (
 	"fmt"

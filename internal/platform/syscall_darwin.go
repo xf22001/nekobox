@@ -1,4 +1,4 @@
-package syscallw
+package platform
 
 import "syscall"
 

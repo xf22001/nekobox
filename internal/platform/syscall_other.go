@@ -1,6 +1,6 @@
 //go:build !windows && !darwin
 
-package syscallw
+package platform
 
 import "syscall"
 

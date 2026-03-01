@@ -2,25 +2,34 @@ package grpc_server
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"grpc_server/gen"
 	"io"
 	"log"
 	"math"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"strings"
 	"time"
 
-	"libneko/neko_common"
-	"libneko/speedtest"
+	"nekobox/grpc_server/gen"
 )
 
 const (
 	KiB = 1024
 	MiB = 1024 * KiB
 )
+
+const (
+	UrlTestStandard_RTT            = 0
+	UrlTestStandard_Handshake      = 1
+	UrlTestStandard_FisrtHandshake = 2
+)
+
+var errNoRedir = errors.New("no redir")
 
 func getBetweenStr(str, start, end string) string {
 	n := strings.Index(str, start)
@@ -36,14 +45,100 @@ func getBetweenStr(str, start, end string) string {
 	return str[len(start):]
 }
 
-func DoFullTest(ctx context.Context, in *gen.TestReq, instance interface{}) (out *gen.TestResp, _ error) {
+func UrlTest(client *http.Client, link string, timeout int32, standard int) (int32, error) {
+	if client == nil {
+		return 0, fmt.Errorf("no client")
+	}
+	defer client.CloseIdleConnections()
+
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return errNoRedir
+	}
+
+	var time_start time.Time
+	var hsk_end time.Time
+	var time_end time.Time
+	var times int
+
+	switch standard {
+	case UrlTestStandard_FisrtHandshake:
+		times = 1
+	case UrlTestStandard_Handshake:
+		times = 2
+		rt := client.Transport.(*http.Transport)
+		rt.DisableKeepAlives = true
+	case UrlTestStandard_RTT:
+		times = 2
+	default:
+		return 0, errors.New("unknown urltest standard")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Millisecond)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	trace := &httptrace.ClientTrace{
+		TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
+			hsk_end = time.Now()
+		},
+		GotFirstResponseByte: func() {
+			time_end = time.Now()
+		},
+		WroteHeaders: func() {
+			hsk_end = time.Now()
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+
+	for i := 0; i < times; i++ {
+		time_start = time.Now()
+		resp, err := client.Do(req)
+		if err != nil {
+			if errors.Is(err, errNoRedir) {
+				err = nil
+			} else {
+				return 0, err
+			}
+		}
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+	}
+
+	if time_end.IsZero() {
+		time_end = time.Now()
+	}
+
+	if standard == UrlTestStandard_RTT {
+		time_start = hsk_end
+	}
+
+	return int32(time_end.Sub(time_start).Milliseconds()), nil
+}
+
+func TcpPing(address string, timeout int32) (ms int32, err error) {
+	startTime := time.Now()
+	c, err := net.DialTimeout("tcp", address, time.Duration(timeout)*time.Millisecond)
+	endTime := time.Now()
+	if err == nil {
+		ms = int32(endTime.Sub(startTime).Milliseconds())
+		c.Close()
+	}
+	return
+}
+
+func DoFullTest(ctx context.Context, in *gen.TestReq, core ProxyCore) (out *gen.TestResp, _ error) {
 	out = &gen.TestResp{}
-	httpClient := neko_common.CreateProxyHttpClient(instance)
+	httpClient := core.CreateProxyHttpClient()
 
 	// Latency
 	var latency string
 	if in.FullLatency {
-		t, _ := speedtest.UrlTest(httpClient, in.Url, in.Timeout, speedtest.UrlTestStandard_RTT)
+		t, _ := UrlTest(httpClient, in.Url, in.Timeout, UrlTestStandard_RTT)
 		out.Ms = t
 		if t > 0 {
 			latency = fmt.Sprint(t, "ms")
@@ -60,7 +155,7 @@ func DoFullTest(ctx context.Context, in *gen.TestReq, instance interface{}) (out
 
 		go func() {
 			var startTime = time.Now()
-			pc, err := neko_common.DialContext(ctx, instance, "udp", "8.8.8.8:53")
+			pc, err := core.DialContext(ctx, "udp", "8.8.8.8:53")
 			if err == nil {
 				defer pc.Close()
 				dnsPacket, _ := hex.DecodeString("0000010000010000000000000377777706676f6f676c6503636f6d0000010001")
