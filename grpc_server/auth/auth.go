@@ -8,34 +8,47 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Authenticator exposes a function for authenticating requests.
 type Authenticator struct {
 	Token string
 }
 
-func (a Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ctx, status.Error(codes.Unauthenticated, "no headers in request")
+// Authenticate checks that a token exists and is valid. It stores the user
+// metadata in the returned context and removes the token from the context.
+func (a Authenticator) Authenticate(ctx context.Context) (newCtx context.Context, err error) {
+	auth, err := extractHeader(ctx, "nekoray_auth")
+	if err != nil {
+		return ctx, err
 	}
 
-	authHeaders, ok := md["nekoray_auth"]
-	if !ok {
-		return ctx, status.Error(codes.Unauthenticated, "no header in request")
-	}
-
-	// 严格保持原有的单值检查逻辑
-	if len(authHeaders) != 1 {
-		return ctx, status.Error(codes.Unauthenticated, "more than 1 header in request")
-	}
-
-	if authHeaders[0] != a.Token {
+	if auth != a.Token {
 		return ctx, status.Error(codes.Unauthenticated, "invalid token")
 	}
 
-	// 严格保持原有的 Header 清除逻辑，确保后续 context 安全
-	mdCopy := md.Copy()
-	mdCopy["nekoray_auth"] = nil
-	newCtx := metadata.NewIncomingContext(ctx, mdCopy)
+	return purgeHeader(ctx, "nekoray_auth"), nil
+}
 
-	return newCtx, nil
+func extractHeader(ctx context.Context, header string) (string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", status.Error(codes.Unauthenticated, "no headers in request")
+	}
+
+	authHeaders, ok := md[header]
+	if !ok {
+		return "", status.Error(codes.Unauthenticated, "no header in request")
+	}
+
+	if len(authHeaders) != 1 {
+		return "", status.Error(codes.Unauthenticated, "more than 1 header in request")
+	}
+
+	return authHeaders[0], nil
+}
+
+func purgeHeader(ctx context.Context, header string) context.Context {
+	md, _ := metadata.FromIncomingContext(ctx)
+	mdCopy := md.Copy()
+	mdCopy[header] = nil
+	return metadata.NewIncomingContext(ctx, mdCopy)
 }

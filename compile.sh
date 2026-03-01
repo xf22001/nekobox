@@ -2,8 +2,12 @@
 
 #================================================================
 #   
+#   
 #   文件名称：compile.sh
-#   描    述：Monolithic 统一构建脚本
+#   创 建 者：肖飞
+#   创建日期：2024年12月04日 星期三 15时14分18秒
+#   修改日期：2025年10月07日 星期二 16时46分54秒
+#   描    述：
 #
 #================================================================
 function main() {
@@ -29,9 +33,6 @@ function main() {
 
 	mkdir -p $DEST
 
-	# 核心优化：
-	# 1. 直接在根目录通过 package 路径编译入口 ./cmd/nekobox_core
-	# 2. 传入 -checklinkname=0 保证 Go 1.25 下跨 package 的符号链接合法化
 	go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
 }
 
