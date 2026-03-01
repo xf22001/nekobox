@@ -30,7 +30,7 @@ jobs:
 
       - name: Clone sing-box repository
         run: |
-          git clone --branch module https://${{ secrets.PRIVATE_REPO_ACCESS_TOKEN }}@github.com/xf22001/sing-box.git sing-box
+          git clone --branch module-main https://${{ secrets.PRIVATE_REPO_ACCESS_TOKEN }}@github.com/xf22001/sing-box.git sing-box
 
       - name: Set environment variables
         run: |
