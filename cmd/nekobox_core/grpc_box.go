@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"nekobox/grpc_server"
@@ -13,8 +12,7 @@ import (
 
 	box "github.com/sagernet/sing-box"
 	"github.com/sagernet/sing-box/boxapi"
-
-	"log"
+	"github.com/sagernet/sing-box/log"
 )
 
 type server struct {
@@ -47,7 +45,7 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 	}()
 
 	if grpc_server.Debug {
-		log.Println("Start:", in.CoreConfig)
+		log.Info("Start with config: ", in.CoreConfig)
 	}
 
 	currentInstance := instanceManager.GetInstance()
@@ -63,7 +61,7 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 	if newInstance != nil {
 		instanceManager.SetInstance(newInstance, newCancel)
 	} else {
-		log.Println("err:", err)
+		log.Error("err: ", err)
 		err = errors.New("failed to create instance")
 	}
 
@@ -127,10 +125,11 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 
 		info, ipInfoErr := FetchIPInfo(ctx, client)
 		if ipInfoErr != nil {
-			out.Error = fmt.Sprintf("IP info fetch failed: %v", ipInfoErr)
+			out.Error = "IP info fetch failed"
 			return
 		}
-		out.FullReport = fmt.Sprintf("%s (%s, %s)", info.Query, info.Country, info.City)
+		log.Info("IP Info: ", info.Query, " (", info.Country, ", ", info.City, ")")
+		out.FullReport = info.Query
 	}
 
 	return

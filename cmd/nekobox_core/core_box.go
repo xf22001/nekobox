@@ -2,14 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	"nekobox/grpc_server"
 
 	box "github.com/sagernet/sing-box"
 	"github.com/sagernet/sing-box/boxapi"
+	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing/common/metadata"
 )
 
@@ -35,6 +40,7 @@ func (im *InstanceManager) SetInstance(b *box.Box, cancel context.CancelFunc) {
 	}
 	im.box = b
 	im.cancel = cancel
+	log.Info("Core instance updated and started")
 }
 
 func (im *InstanceManager) ClearInstance() {
@@ -81,4 +87,40 @@ func (im *InstanceManager) CreateProxyHttpClient() *http.Client {
 
 func setupCore() {
 	boxapi.SetDisableColor(true)
+
+	// 恢复功能：日志双写。同时输出到 Stderr 和 neko.log 文件
+	var writers []io.Writer
+	writers = append(writers, os.Stderr)
+
+	// 显式创建日志文件
+	logFile, err := os.OpenFile("neko.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil {
+		writers = append(writers, logFile)
+	}
+
+	multiWriter := io.MultiWriter(writers...)
+
+	factory := log.NewDefaultFactory(
+		context.Background(),
+		log.Formatter{DisableColors: true, TimestampFormat: "-0700 2006-01-02 15:04:05", FullTimestamp: true},
+		multiWriter,
+		"",
+		nil,
+		false,
+	)
+
+	// 根据 -debug 参数设置日志等级
+	if grpc_server.Debug {
+		factory.SetLevel(log.LevelDebug)
+	} else {
+		factory.SetLevel(log.LevelInfo)
+	}
+
+	err = factory.Start()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to start log factory: %v\n", err)
+	}
+	log.SetStdLogger(factory.Logger())
+	
+	log.Info("Nekobox core logger initialized")
 }
