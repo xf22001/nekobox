@@ -69,7 +69,7 @@ jobs:
 
           docker run --rm \
             -v ${{ github.workspace }}:/app \
-            -w /app/cmd/nekobox_core \
+            -w /app \
             -e GOOS=$GOOS \
             -e GOARCH=$GOARCH \
             -e VERSION=$VERSION \
@@ -89,7 +89,7 @@ jobs:
               echo \"--- End of Environment Variables --- \"
 
               # --- Debugging: Print the go build command ---
-              BUILD_COMMAND=\"go build -v -o \$DEST -trimpath -ldflags '-w -s -X github.com/sagernet/sing-box/constant.Version=\$VERSION' -tags '\$TAGS'\"
+              BUILD_COMMAND=\"go build -v -o \$DEST -trimpath -ldflags '-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=\$VERSION' -tags '\$TAGS' ./cmd/nekobox_core\"
               echo \"--- Go Build Command: --- \"
               echo \"\$BUILD_COMMAND\"
               echo \"--- End of Go Build Command --- \"

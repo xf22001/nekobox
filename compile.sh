@@ -33,9 +33,7 @@ function main() {
 
 	mkdir -p $DEST
 
-	cd cmd/nekobox_core
-
-	go build -v -o $DEST -trimpath -ldflags "-w -s -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS"
+	go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
 }
 
 main $@
