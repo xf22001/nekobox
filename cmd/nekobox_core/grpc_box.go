@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"strings"
 
 	"nekobox/grpc_server"
 	"nekobox/grpc_server/gen"
@@ -92,20 +93,20 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 		}
 	}()
 
+	i, cleanup, err := s.getOrCreateInstance(in.Config)
+	if err != nil {
+		return &gen.TestResp{Error: err.Error()}, nil
+	}
+	if cleanup != nil {
+		defer cleanup()
+	}
+
 	switch in.Mode {
 	case gen.TestMode_UrlTest:
-		i, cleanup, err := s.getOrCreateInstance(in.Config)
-		if err != nil {
-			return &gen.TestResp{Error: err.Error()}, nil
-		}
-		if cleanup != nil {
-			defer cleanup()
-		}
 		if i == nil {
 			return out, nil
 		}
-		// 使用重构后的 testing 包和 instanceManager
-		client := instanceManager.CreateProxyHttpClient()
+		client := CreateHttpClientForBox(i)
 		out.Ms, err = grpc_server.UrlTest(client, in.Url, in.Timeout, grpc_server.UrlTestStandard_RTT)
 
 	case gen.TestMode_TcpPing:
@@ -116,7 +117,11 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 		return grpc_server.DoFullTest(ctx, in, s)
 
 	case gen.TestMode_CheckProxy:
-		client := instanceManager.CreateProxyHttpClient()
+		if i == nil {
+			out.Error = "no instance available"
+			return
+		}
+		client := CreateHttpClientForBox(i)
 		fetchTimeout := time.Duration(in.Timeout) * time.Millisecond
 		if fetchTimeout == 0 {
 			fetchTimeout = 10 * time.Second
@@ -125,11 +130,28 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 
 		info, ipInfoErr := FetchIPInfo(ctx, client)
 		if ipInfoErr != nil {
-			out.Error = "IP info fetch failed"
+			out.Error = "IP info fetch failed: " + ipInfoErr.Error()
 			return
 		}
-		log.Info("IP Info: ", info.Query, " (", info.Country, ", ", info.City, ")")
-		out.FullReport = info.Query
+
+		var parts []string
+		if info.Country != "" {
+			parts = append(parts, info.Country)
+		}
+		if info.City != "" {
+			parts = append(parts, info.City)
+		}
+		if info.Isp != "" {
+			parts = append(parts, info.Isp)
+		}
+
+		location := ""
+		if len(parts) > 0 {
+			location = " (" + strings.Join(parts, ", ") + ")"
+		}
+
+		log.Info("IP Info: ", info.Query, location)
+		out.FullReport = info.Query + location
 	}
 
 	return

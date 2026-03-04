@@ -73,12 +73,21 @@ func (im *InstanceManager) ListenPacket(ctx context.Context) (net.PacketConn, er
 }
 
 func (im *InstanceManager) CreateProxyHttpClient() *http.Client {
+	return CreateHttpClientForBox(im.GetInstance())
+}
+
+func CreateHttpClientForBox(b *box.Box) *http.Client {
 	transport := &http.Transport{
 		TLSHandshakeTimeout:   time.Second * 5,
 		ResponseHeaderTimeout: time.Second * 10,
 		IdleConnTimeout:       time.Second * 30,
 	}
-	transport.DialContext = im.DialContext
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if b != nil {
+			return b.Outbound().Default().DialContext(ctx, network, metadata.ParseSocksaddr(addr))
+		}
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
+	}
 	return &http.Client{
 		Transport: transport,
 		Timeout:   time.Second * 60,

@@ -23,6 +23,7 @@ type IPInfo struct {
 	Org         string  `json:"org"`
 	As          string  `json:"as"`
 	Query       string  `json:"query"`
+	IP          string  `json:"ip"`      // Some APIs use 'ip' instead of 'query'
 	Message     string  `json:"message"` // For error messages
 }
 
@@ -64,10 +65,14 @@ func FetchIPInfo(ctx context.Context, client *http.Client) (*IPInfo, error) {
 			continue
 		}
 
-		// Standardize query field for different APIs if necessary
-		if info.Query == "" && info.Status == "" {
-			// Some APIs use different fields, handle them if needed
-			// For simplicity, we assume ip-api format or similar
+		// Standardize query field for different APIs
+		if info.Query == "" && info.IP != "" {
+			info.Query = info.IP
+		}
+
+		if info.Query == "" {
+			lastErr = fmt.Errorf("API %s returned no IP address", url)
+			continue
 		}
 
 		return &info, nil
