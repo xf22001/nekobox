@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -83,9 +84,15 @@ func FetchIPInfo(ctx context.Context, client *http.Client) (*IPInfo, error) {
 			if info.Query == "" && info.IP != "" {
 				info.Query = info.IP
 			}
+			info.Query = strings.TrimSpace(info.Query)
 
-			if info.Query == "" {
-				lastErr = fmt.Errorf("API %s returned no IP address", url)
+			// If no IP address is returned, the IP is too short to be valid, or the API explicitly signals failure
+			if len(info.Query) < 3 || info.Status == "fail" {
+				msg := info.Message
+				if msg == "" {
+					msg = "no valid IP address or unknown error"
+				}
+				lastErr = fmt.Errorf("API %s failure: %s", url, msg)
 				continue
 			}
 
