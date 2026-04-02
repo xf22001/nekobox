@@ -6,7 +6,7 @@ replace github.com/sagernet/sing-box => ./sing-box
 
 require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
-	github.com/sagernet/sing v0.8.3-0.20260315153529-ed51f65fbfde
+	github.com/sagernet/sing v0.8.4
 	github.com/sagernet/sing-box v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
@@ -111,7 +111,7 @@ require (
 	github.com/sagernet/nftables v0.3.0-beta.4 // indirect
 	github.com/sagernet/quic-go v0.59.0-sing-box-mod.4 // indirect
 	github.com/sagernet/sing-mux v0.3.4 // indirect
-	github.com/sagernet/sing-quic v0.6.0 // indirect
+	github.com/sagernet/sing-quic v0.6.1 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.8 // indirect
 	github.com/sagernet/sing-shadowsocks2 v0.2.1 // indirect
 	github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11 // indirect
