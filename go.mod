@@ -6,7 +6,7 @@ replace github.com/sagernet/sing-box => ./sing-box
 
 require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
-	github.com/sagernet/sing v0.8.8
+	github.com/sagernet/sing v0.8.9
 	github.com/sagernet/sing-box v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
