@@ -1,19 +1,26 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
-	"context"
-	"errors"
-	"time"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"nekobox/grpc_server"
 	"nekobox/grpc_server/gen"
 
 	box "github.com/sagernet/sing-box"
+	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/boxapi"
+	"github.com/sagernet/sing-box/experimental/clashapi"
+	"github.com/sagernet/sing-box/experimental/v2rayapi"
 	"github.com/sagernet/sing-box/log"
+	"github.com/sagernet/sing/service"
 )
 
 type server struct {
@@ -155,6 +162,93 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 	}
 
 	return
+}
+
+func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (*gen.QueryStatsResp, error) {
+	instance := instanceManager.GetInstance()
+	if instance == nil {
+		return &gen.QueryStatsResp{Traffic: 0}, nil
+	}
+
+	v2rayServer := service.FromContext[adapter.V2RayServer](instance.Context())
+	if v2rayServer == nil || v2rayServer.StatsService() == nil {
+		return &gen.QueryStatsResp{Traffic: 0}, nil
+	}
+	statsService, ok := v2rayServer.StatsService().(*v2rayapi.StatsService)
+	if !ok || statsService == nil {
+		return &gen.QueryStatsResp{Traffic: 0}, nil
+	}
+
+	tag := in.GetTag()
+	if tag == "" {
+		tag = "proxy"
+	}
+	direct := in.GetDirect()
+	if direct == "" {
+		direct = "uplink"
+	}
+	name := fmt.Sprintf("outbound>>>%s>>>traffic>>>%s", tag, direct)
+	// reset=true so pynekoray can treat each poll as speed sample
+	traffic, err := statsService.GetNekoStats(ctx, name, true)
+	if err != nil {
+		// missing counter means no traffic yet
+		return &gen.QueryStatsResp{Traffic: 0}, nil
+	}
+	return &gen.QueryStatsResp{Traffic: traffic}, nil
+}
+
+func (s *server) ListConnections(ctx context.Context, in *gen.EmptyReq) (*gen.ListConnectionsResp, error) {
+	instance := instanceManager.GetInstance()
+	if instance == nil {
+		payload, _ := json.Marshal([]map[string]any{})
+		return &gen.ListConnectionsResp{NekorayConnectionsJson: string(payload)}, nil
+	}
+
+	clashServer := service.FromContext[adapter.ClashServer](instance.Context())
+	if clashServer == nil {
+		return nil, errors.New("no clash server found")
+	}
+	clash, ok := clashServer.(*clashapi.Server)
+	if !ok || clash == nil {
+		return nil, errors.New("invalid clash server type")
+	}
+
+	connections := clash.TrafficManager().Connections()
+	items := make([]map[string]any, 0, len(connections))
+	for _, c := range connections {
+		if c == nil {
+			continue
+		}
+		item := map[string]any{
+			"ID":    c.ID.String(),
+			"Dest":  c.Metadata.Destination.String(),
+			"RDest": "",
+			"Uid":   0,
+			"Start": c.CreatedAt.Unix(),
+			"End":   0,
+			"Tag":   c.Outbound,
+		}
+		if c.Metadata.Domain != "" {
+			item["RDest"] = c.Metadata.Domain
+		} else if c.Metadata.Destination.IsFqdn() {
+			item["RDest"] = c.Metadata.Destination.Fqdn
+		}
+		if c.Metadata.ProcessInfo != nil {
+			item["Uid"] = c.Metadata.ProcessInfo.UserId
+			if c.Metadata.ProcessInfo.ProcessPath != "" {
+				item["Process"] = filepath.Base(c.Metadata.ProcessInfo.ProcessPath)
+			}
+		}
+		if !c.ClosedAt.IsZero() {
+			item["End"] = c.ClosedAt.Unix()
+		}
+		items = append(items, item)
+	}
+	payload, err := json.Marshal(items)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.ListConnectionsResp{NekorayConnectionsJson: string(payload)}, nil
 }
 
 func (s *server) getOrCreateInstance(config *gen.LoadConfigReq) (*box.Box, func(), error) {
