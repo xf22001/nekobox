@@ -115,7 +115,7 @@ func setupCore() {
 		multiWriter,
 		"",
 		nil,
-		false,
+		true,
 	)
 
 	// 根据 -debug 参数设置日志等级

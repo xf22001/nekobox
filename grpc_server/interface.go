@@ -11,7 +11,7 @@ import (
 // CoreLogger is the log factory built in setupCore; it is forwarded to the
 // box instance via boxapi.Create so kernel logs are written to the same
 // destination (e.g. neko.log) as the core process.
-var CoreLogger log.Factory
+var CoreLogger log.ObservableFactory
 
 type ProxyCore interface {
 	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
