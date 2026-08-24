@@ -66,7 +66,7 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 		return &gen.ErrorResp{Error: "instance already started"}, nil
 	}
 
-	newInstance, newCancel, err := boxapi.Create([]byte(in.CoreConfig), nil)
+	newInstance, newCancel, err := boxapi.Create([]byte(in.CoreConfig), grpc_server.CoreLogger)
 	if err != nil {
 		return &gen.ErrorResp{Error: err.Error()}, nil
 	}
@@ -258,7 +258,7 @@ func (s *server) ListConnections(ctx context.Context, in *gen.EmptyReq) (*gen.Li
 
 func (s *server) getOrCreateInstance(config *gen.LoadConfigReq) (*box.Box, func(), error) {
 	if config != nil {
-		i, cancel, err := boxapi.Create([]byte(config.CoreConfig), nil)
+		i, cancel, err := boxapi.Create([]byte(config.CoreConfig), grpc_server.CoreLogger)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -130,6 +130,10 @@ func setupCore() {
 		fmt.Fprintf(os.Stderr, "Failed to start log factory: %v\n", err)
 	}
 	log.SetStdLogger(factory.Logger())
-	
+
+	// Share the same factory with the box instance so kernel logs are also
+	// written to neko.log (via multiWriter).
+	grpc_server.CoreLogger = factory
+
 	log.Info("Nekobox core logger initialized")
 }
