@@ -14,6 +14,7 @@ function main() {
 	export DEPLOYMENT=$(pwd)/build
 	export GOOS=linux
 	export GOARCH=amd64
+	export CGO_ENABLED=0
 	export TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_naive_outbound,with_purego,with_clash_api,with_v2ray_api,with_tailscale,with_ccm,with_ocm,badlinkname,tfogo_checklinkname0"
 
 	pushd sing-box
@@ -33,7 +34,7 @@ function main() {
 
 	mkdir -p $DEST
 
-	go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
+	CGO_ENABLED=$CGO_ENABLED go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
 }
 
 main $@
