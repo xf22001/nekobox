@@ -24,13 +24,11 @@ var Debug bool
 
 type BaseServer struct {
 	gen.LibcoreServiceServer
-	core       ProxyCore
-	grpcServer *grpc.Server
+	core ProxyCore
 }
 
-func (s *BaseServer) setRuntime(core ProxyCore, gs *grpc.Server) {
+func (s *BaseServer) setRuntime(core ProxyCore) {
 	s.core = core
-	s.grpcServer = gs
 }
 
 func (s *BaseServer) Exit(ctx context.Context, in *gen.EmptyReq) (out *gen.EmptyResp, _ error) {
@@ -40,11 +38,14 @@ func (s *BaseServer) Exit(ctx context.Context, in *gen.EmptyReq) (out *gen.Empty
 	if s.core != nil {
 		_ = s.core.Shutdown()
 	}
-	// Gracefully stop the gRPC server so in-flight requests finish.
-	if s.grpcServer != nil {
-		s.grpcServer.GracefulStop()
-	}
-	os.Exit(0)
+
+	// Exit the process asynchronously so the RPC response can be delivered to
+	// the caller. Calling GracefulStop() here would deadlock: it blocks until
+	// all in-flight RPCs finish, including this Exit call itself.
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		os.Exit(0)
+	}()
 	return
 }
 
@@ -107,8 +108,8 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(auther.Authenticate)),
 	)
 
-	if bs, ok := server.(interface{ setRuntime(core ProxyCore, gs *grpc.Server) }); ok {
-		bs.setRuntime(server.(ProxyCore), s)
+	if bs, ok := server.(interface{ setRuntime(core ProxyCore) }); ok {
+		bs.setRuntime(server.(ProxyCore))
 	}
 
 	gen.RegisterLibcoreServiceServer(s, server)
