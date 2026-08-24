@@ -24,12 +24,26 @@ var Debug bool
 
 type BaseServer struct {
 	gen.LibcoreServiceServer
+	core       ProxyCore
+	grpcServer *grpc.Server
+}
+
+func (s *BaseServer) setRuntime(core ProxyCore, gs *grpc.Server) {
+	s.core = core
+	s.grpcServer = gs
 }
 
 func (s *BaseServer) Exit(ctx context.Context, in *gen.EmptyReq) (out *gen.EmptyResp, _ error) {
 	out = &gen.EmptyResp{}
 
-	// Connection closed
+	// Release core resources (running box instance) before leaving.
+	if s.core != nil {
+		_ = s.core.Shutdown()
+	}
+	// Gracefully stop the gRPC server so in-flight requests finish.
+	if s.grpcServer != nil {
+		s.grpcServer.GracefulStop()
+	}
 	os.Exit(0)
 	return
 }
@@ -92,6 +106,11 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(auther.Authenticate)),
 		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(auther.Authenticate)),
 	)
+
+	if bs, ok := server.(interface{ setRuntime(core ProxyCore, gs *grpc.Server) }); ok {
+		bs.setRuntime(server.(ProxyCore), s)
+	}
+
 	gen.RegisterLibcoreServiceServer(s, server)
 
 	name := "nekobox_core"

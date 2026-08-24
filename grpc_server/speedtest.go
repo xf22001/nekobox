@@ -29,6 +29,15 @@ const (
 	UrlTestStandard_FisrtHandshake = 2
 )
 
+// Speed-test endpoints. Overridable so they can be tuned for special
+// network environments without recompiling the proto/ GUI contract.
+var (
+	// UDP latency probe target (DNS query to a public resolver).
+	FullTestUDPEchoAddr = "8.8.8.8:53"
+	// URL inspected for the outbound IP via its "ip=" line.
+	FullTestOutIPURL = "https://www.cloudflare.com/cdn-cgi/trace"
+)
+
 var errNoRedir = errors.New("no redir")
 
 func getBetweenStr(str, start, end string) string {
@@ -155,7 +164,7 @@ func DoFullTest(ctx context.Context, in *gen.TestReq, core ProxyCore) (out *gen.
 
 		go func() {
 			var startTime = time.Now()
-			pc, err := core.DialContext(ctx, "udp", "8.8.8.8:53")
+			pc, err := core.DialContext(ctx, "udp", FullTestUDPEchoAddr)
 			if err == nil {
 				defer pc.Close()
 				dnsPacket, _ := hex.DecodeString("0000010000010000000000000377777706676f6f676c6503636f6d0000010001")
@@ -198,7 +207,7 @@ func DoFullTest(ctx context.Context, in *gen.TestReq, core ProxyCore) (out *gen.
 	// 出口 IP
 	var out_ip string
 	if in.FullInOut {
-		resp, err := httpClient.Get("https://www.cloudflare.com/cdn-cgi/trace")
+		resp, err := httpClient.Get(FullTestOutIPURL)
 		if err == nil {
 			b, _ := io.ReadAll(resp.Body)
 			out_ip = getBetweenStr(string(b), "ip=", "\n")

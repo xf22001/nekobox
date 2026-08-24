@@ -42,6 +42,11 @@ func (s *server) CreateProxyHttpClient() *http.Client {
 	return instanceManager.CreateProxyHttpClient()
 }
 
+func (s *server) Shutdown() error {
+	instanceManager.ClearInstance()
+	return nil
+}
+
 func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.ErrorResp, _ error) {
 	var err error
 
