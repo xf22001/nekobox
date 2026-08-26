@@ -18,6 +18,14 @@ import (
 	"github.com/sagernet/sing/common/metadata"
 )
 
+type nonClosableObservableFactory struct {
+	log.ObservableFactory
+}
+
+func (f *nonClosableObservableFactory) Close() error {
+	return nil
+}
+
 type InstanceManager struct {
 	mu     sync.RWMutex
 	box    *box.Box
@@ -94,14 +102,10 @@ func CreateHttpClientForBox(b *box.Box) *http.Client {
 	}
 }
 
-func setupCore() {
-	boxapi.SetDisableColor(true)
-
-	// 恢复功能：日志双写。同时输出到 Stderr 和 neko.log 文件
+func createCoreLogger() log.ObservableFactory {
 	var writers []io.Writer
 	writers = append(writers, os.Stderr)
 
-	// 显式创建日志文件
 	logFile, err := os.OpenFile("neko.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		writers = append(writers, logFile)
@@ -118,7 +122,6 @@ func setupCore() {
 		true,
 	)
 
-	// 根据 -debug 参数设置日志等级
 	if grpc_server.Debug {
 		factory.SetLevel(log.LevelDebug)
 	} else {
@@ -129,11 +132,16 @@ func setupCore() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to start log factory: %v\n", err)
 	}
-	log.SetStdLogger(factory.Logger())
+	return factory
+}
 
-	// Share the same factory with the box instance so kernel logs are also
-	// written to neko.log (via multiWriter).
-	grpc_server.CoreLogger = factory
+func setupCore() {
+	boxapi.SetDisableColor(true)
+
+	rawFactory := createCoreLogger()
+	log.SetStdLogger(rawFactory.Logger())
+
+	grpc_server.CoreLogger = &nonClosableObservableFactory{ObservableFactory: rawFactory}
 
 	log.Info("Nekobox core logger initialized")
 }
