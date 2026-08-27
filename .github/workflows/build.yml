@@ -26,11 +26,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: ^1.25.10
+          go-version: ^1.26.0
 
-      - name: Clone sing-box repository
+      - name: Clone Xray-core repository
         run: |
-          git clone --branch module-stable https://${{ secrets.PRIVATE_REPO_ACCESS_TOKEN }}@github.com/xf22001/sing-box.git sing-box
+          git clone --branch module-main https://${{ secrets.PRIVATE_REPO_ACCESS_TOKEN }}@github.com/xf22001/Xray-core.git Xray-core
 
       - name: Set environment variables
         run: |
@@ -38,14 +38,6 @@ jobs:
           echo "GOOS=${{ github.event.inputs.os == 'windows-latest' && 'windows' || 'linux' }}" >> $GITHUB_ENV
           echo "GOARCH=${{ matrix.arch }}" >> $GITHUB_ENV
           echo "CGO_ENABLED=0" >> $GITHUB_ENV
-
-          echo "TAGS=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_naive_outbound,with_purego,with_clash_api,with_v2ray_api,with_tailscale,with_ccm,with_ocm,badlinkname,tfogo_checklinkname0" >> $GITHUB_ENV
-
-          pushd sing-box
-          echo "GOHOSTOS=$(go env GOHOSTOS)" >> $GITHUB_ENV
-          echo "GOHOSTARCH=$(go env GOHOSTARCH)" >> $GITHUB_ENV
-          echo "VERSION=$(CGO_ENABLED=0 GOOS=$(go env GOHOSTOS) GOARCH=$(go env GOHOSTARCH) go run ./cmd/internal/read_tag)" >> $GITHUB_ENV
-          popd
 
       - name: Build the project
         run: |
@@ -70,7 +62,7 @@ jobs:
 
           mkdir -p "$DEST"
 
-          CGO_ENABLED=$CGO_ENABLED go build -v -o "$DEST/nekobox_core" -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
+          CGO_ENABLED=$CGO_ENABLED go build -v -o "$DEST/nekoray_core" -trimpath -ldflags "-w -s" ./cmd/nekoray_core
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7

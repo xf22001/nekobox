@@ -4,19 +4,15 @@ import (
 	"context"
 	"net"
 	"net/http"
-
-	"github.com/sagernet/sing-box/log"
 )
 
-// CoreLogger is the log factory built in setupCore; it is forwarded to the
-// box instance via boxapi.Create so kernel logs are written to the same
-// destination (e.g. neko.log) as the core process.
-var CoreLogger log.ObservableFactory
-
+// ProxyCore is the engine facade implemented by the core process. The gRPC
+// layer only depends on this interface so the underlying engine (sing-box /
+// Xray) can be swapped without touching the service wiring.
 type ProxyCore interface {
 	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
 	ListenPacket(ctx context.Context) (net.PacketConn, error)
 	CreateProxyHttpClient() *http.Client
-	// Shutdown releases core resources (e.g. the running box instance).
+	// Shutdown releases core resources (e.g. the running engine instance).
 	Shutdown() error
 }

@@ -1,13 +1,13 @@
 #!/bin/bash
 
 #================================================================
-#   
-#   
+#
+#
 #   文件名称：compile.sh
 #   创 建 者：肖飞
 #   创建日期：2024年12月04日 星期三 15时14分18秒
-#   修改日期：2026年06月20日 星期六 18时08分19秒
-#   描    述：
+#   修改日期：2026年08月27日 星期四 12时00分00秒
+#   描    述：nekoray 分支：基于 Xray-core 引擎构建 nekoray_core
 #
 #================================================================
 function main() {
@@ -15,13 +15,6 @@ function main() {
 	export GOOS=linux
 	export GOARCH=amd64
 	export CGO_ENABLED=0
-	export TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_naive_outbound,with_purego,with_clash_api,with_v2ray_api,with_tailscale,with_ccm,with_ocm,badlinkname,tfogo_checklinkname0"
-
-	pushd sing-box
-	export GOHOSTOS="$(go env GOHOSTOS)"
-	export GOHOSTARCH="$(go env GOHOSTARCH)"
-	export VERSION="$(CGO_ENABLED=0 GOOS=$GOHOSTOS GOARCH=$GOHOSTARCH go run ./cmd/internal/read_tag)"
-	popd
 
 	[ "$GOOS" == "windows" ] && [ "$GOARCH" == "amd64" ] && DEST=$DEPLOYMENT/windows64 || true
 	[ "$GOOS" == "windows" ] && [ "$GOARCH" == "arm64" ] && DEST=$DEPLOYMENT/windows-arm64 || true
@@ -34,7 +27,7 @@ function main() {
 
 	mkdir -p $DEST
 
-	CGO_ENABLED=$CGO_ENABLED go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
+	CGO_ENABLED=$CGO_ENABLED go build -v -o $DEST/nekoray_core -trimpath -ldflags "-w -s" ./cmd/nekoray_core
 }
 
 main $@

@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package libcore;
-option go_package = "nekobox/grpc_server/gen";
+option go_package = "nekoray/grpc_server/gen";
 
 service LibcoreService {
   rpc Exit(EmptyReq) returns (EmptyResp) {}
@@ -11,7 +11,6 @@ service LibcoreService {
   rpc Stop(EmptyReq) returns (ErrorResp) {}
   rpc Test(TestReq) returns (TestResp) {}
   rpc QueryStats(QueryStatsReq) returns (QueryStatsResp) {}
-  rpc ListConnections(EmptyReq) returns (ListConnectionsResp) {}
 }
 
 message EmptyReq {}
@@ -24,7 +23,6 @@ message ErrorResp {
 
 message LoadConfigReq {
   string core_config = 1;
-  bool enable_nekoray_connections = 2;
   repeated string stats_outbounds = 3;
 }
 
@@ -88,8 +86,4 @@ message UpdateResp {
   string release_url = 4;
   string release_note = 5;
   bool is_pre_release = 6;
-}
-
-message ListConnectionsResp {
-  string nekoray_connections_json = 1;
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net"
 	"net/http"
@@ -14,8 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sagernet/sing-box/log"
-	"nekobox/grpc_server/gen"
+	"nekoray/grpc_server/gen"
 )
 
 const (
@@ -178,7 +178,7 @@ func DoFullTest(ctx context.Context, in *gen.TestReq, core ProxyCore) (out *gen.
 				var endTime = time.Now()
 				result <- fmt.Sprint(endTime.Sub(startTime).Abs().Milliseconds(), "ms")
 			} else {
-				log.Error("UDP Latency test error: ", err)
+				log.Println("UDP Latency test error: ", err)
 				result <- "Error"
 			}
 			close(result)

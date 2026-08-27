@@ -8,7 +8,6 @@ package gen
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,13 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LibcoreService_Exit_FullMethodName            = "/libcore.LibcoreService/Exit"
-	LibcoreService_Update_FullMethodName          = "/libcore.LibcoreService/Update"
-	LibcoreService_Start_FullMethodName           = "/libcore.LibcoreService/Start"
-	LibcoreService_Stop_FullMethodName            = "/libcore.LibcoreService/Stop"
-	LibcoreService_Test_FullMethodName            = "/libcore.LibcoreService/Test"
-	LibcoreService_QueryStats_FullMethodName      = "/libcore.LibcoreService/QueryStats"
-	LibcoreService_ListConnections_FullMethodName = "/libcore.LibcoreService/ListConnections"
+	LibcoreService_Exit_FullMethodName       = "/libcore.LibcoreService/Exit"
+	LibcoreService_Update_FullMethodName     = "/libcore.LibcoreService/Update"
+	LibcoreService_Start_FullMethodName      = "/libcore.LibcoreService/Start"
+	LibcoreService_Stop_FullMethodName       = "/libcore.LibcoreService/Stop"
+	LibcoreService_Test_FullMethodName       = "/libcore.LibcoreService/Test"
+	LibcoreService_QueryStats_FullMethodName = "/libcore.LibcoreService/QueryStats"
 )
 
 // LibcoreServiceClient is the client API for LibcoreService service.
@@ -39,7 +37,6 @@ type LibcoreServiceClient interface {
 	Stop(ctx context.Context, in *EmptyReq, opts ...grpc.CallOption) (*ErrorResp, error)
 	Test(ctx context.Context, in *TestReq, opts ...grpc.CallOption) (*TestResp, error)
 	QueryStats(ctx context.Context, in *QueryStatsReq, opts ...grpc.CallOption) (*QueryStatsResp, error)
-	ListConnections(ctx context.Context, in *EmptyReq, opts ...grpc.CallOption) (*ListConnectionsResp, error)
 }
 
 type libcoreServiceClient struct {
@@ -110,16 +107,6 @@ func (c *libcoreServiceClient) QueryStats(ctx context.Context, in *QueryStatsReq
 	return out, nil
 }
 
-func (c *libcoreServiceClient) ListConnections(ctx context.Context, in *EmptyReq, opts ...grpc.CallOption) (*ListConnectionsResp, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListConnectionsResp)
-	err := c.cc.Invoke(ctx, LibcoreService_ListConnections_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // LibcoreServiceServer is the server API for LibcoreService service.
 // All implementations must embed UnimplementedLibcoreServiceServer
 // for forward compatibility.
@@ -130,7 +117,6 @@ type LibcoreServiceServer interface {
 	Stop(context.Context, *EmptyReq) (*ErrorResp, error)
 	Test(context.Context, *TestReq) (*TestResp, error)
 	QueryStats(context.Context, *QueryStatsReq) (*QueryStatsResp, error)
-	ListConnections(context.Context, *EmptyReq) (*ListConnectionsResp, error)
 	mustEmbedUnimplementedLibcoreServiceServer()
 }
 
@@ -158,9 +144,6 @@ func (UnimplementedLibcoreServiceServer) Test(context.Context, *TestReq) (*TestR
 }
 func (UnimplementedLibcoreServiceServer) QueryStats(context.Context, *QueryStatsReq) (*QueryStatsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryStats not implemented")
-}
-func (UnimplementedLibcoreServiceServer) ListConnections(context.Context, *EmptyReq) (*ListConnectionsResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListConnections not implemented")
 }
 func (UnimplementedLibcoreServiceServer) mustEmbedUnimplementedLibcoreServiceServer() {}
 func (UnimplementedLibcoreServiceServer) testEmbeddedByValue()                        {}
@@ -291,24 +274,6 @@ func _LibcoreService_QueryStats_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _LibcoreService_ListConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LibcoreServiceServer).ListConnections(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: LibcoreService_ListConnections_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LibcoreServiceServer).ListConnections(ctx, req.(*EmptyReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // LibcoreService_ServiceDesc is the grpc.ServiceDesc for LibcoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -339,10 +304,6 @@ var LibcoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryStats",
 			Handler:    _LibcoreService_QueryStats_Handler,
-		},
-		{
-			MethodName: "ListConnections",
-			Handler:    _LibcoreService_ListConnections_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

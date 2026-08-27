@@ -5,8 +5,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"nekobox/grpc_server/auth"
-	"nekobox/grpc_server/gen"
+	"log"
+	"nekoray/grpc_server/auth"
+	"nekoray/grpc_server/gen"
 	"net"
 	"os"
 	"runtime"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
-	"github.com/sagernet/sing-box/log"
 	"google.golang.org/grpc"
 )
 
@@ -34,7 +34,7 @@ func (s *BaseServer) setRuntime(core ProxyCore) {
 func (s *BaseServer) Exit(ctx context.Context, in *gen.EmptyReq) (out *gen.EmptyResp, _ error) {
 	out = &gen.EmptyResp{}
 
-	// Release core resources (running box instance) before leaving.
+	// Release core resources (running engine instance) before leaving.
 	if s.core != nil {
 		_ = s.core.Shutdown()
 	}
@@ -76,7 +76,7 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 		}
 	}()
 
-	// Libcore
+	// Engine setup
 	setupCore()
 
 	// GRPC
@@ -114,9 +114,9 @@ func RunCore(setupCore func(), server gen.LibcoreServiceServer) {
 
 	gen.RegisterLibcoreServiceServer(s, server)
 
-	name := "nekobox_core"
+	name := "nekoray_core"
 
-	log.Info(name, " grpc server listening at ", lis.Addr())
+	log.Println(name, " grpc server listening at ", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatal("failed to serve: ", err)
 	}
