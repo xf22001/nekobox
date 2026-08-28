@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/xtls/xray-core/core"
@@ -71,7 +70,5 @@ func (im *InstanceManager) CreateProxyHttpClient() *http.Client {
 
 func setupCore() {
 	fmt.Println("Nekoray core initialized (Xray engine)")
-	if logFile, err := os.OpenFile("neko.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
-		logFile.Close()
-	}
+	// Optional: zero disk I/O
 }

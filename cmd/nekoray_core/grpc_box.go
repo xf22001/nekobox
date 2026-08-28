@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"context"
 	"fmt"
 	"net"
@@ -59,7 +58,7 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 	}
 
 	// Truncate neko.log so that logs start fresh on each Start
-	_ = os.WriteFile("neko.log", []byte{}, 0644)
+	// Optional: zero disk I/O
 
 	instance, err := xrayapi.Create([]byte(in.CoreConfig))
 	if err != nil {
