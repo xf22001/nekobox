@@ -33,6 +33,7 @@ func (im *InstanceManager) SetInstance(c *core.Instance, cancel context.CancelFu
 	defer im.mu.Unlock()
 	if im.core != nil {
 		_ = im.core.Close()
+		xrayapi.CloseActiveClashServer()
 		time.Sleep(200 * time.Millisecond)
 	}
 	im.core = c
@@ -49,6 +50,7 @@ func (im *InstanceManager) ClearInstance() {
 	if im.core != nil {
 		_ = im.core.Close()
 		im.core = nil
+		xrayapi.CloseActiveClashServer()
 		time.Sleep(300 * time.Millisecond)
 	}
 	im.cancel = nil
