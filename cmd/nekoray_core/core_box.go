@@ -1,6 +1,7 @@
 package main
 
 import (
+	"time"
 	"context"
 	"fmt"
 	"net"
@@ -33,6 +34,7 @@ func (im *InstanceManager) SetInstance(c *core.Instance, cancel context.CancelFu
 	defer im.mu.Unlock()
 	if im.core != nil {
 		_ = im.core.Close()
+		time.Sleep(200 * time.Millisecond)
 	}
 	im.core = c
 	im.cancel = cancel
@@ -47,8 +49,9 @@ func (im *InstanceManager) ClearInstance() {
 	}
 	if im.core != nil {
 		_ = im.core.Close()
+		im.core = nil
+		time.Sleep(300 * time.Millisecond)
 	}
-	im.core = nil
 	im.cancel = nil
 }
 

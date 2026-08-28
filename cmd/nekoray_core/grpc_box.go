@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"context"
 	"fmt"
 	"net"
@@ -54,8 +55,11 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 	}
 
 	if instanceManager.GetInstance() != nil {
-		return &gen.ErrorResp{Error: "instance already started"}, nil
+		instanceManager.ClearInstance()
 	}
+
+	// Truncate neko.log so that logs start fresh on each Start
+	_ = os.WriteFile("neko.log", []byte{}, 0644)
 
 	instance, err := xrayapi.Create([]byte(in.CoreConfig))
 	if err != nil {
@@ -145,12 +149,10 @@ func (s *server) Test(ctx context.Context, in *gen.TestReq) (out *gen.TestResp, 
 	return
 }
 
-func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (*gen.QueryStatsResp, error) {
-	instance := instanceManager.GetInstance()
-	if instance == nil {
-		return &gen.QueryStatsResp{Traffic: 0}, nil
-	}
+var lastUplink int64
+var lastDownlink int64
 
+func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (*gen.QueryStatsResp, error) {
 	tag := in.GetTag()
 	if tag == "" {
 		tag = "proxy"
@@ -159,14 +161,50 @@ func (s *server) QueryStats(ctx context.Context, in *gen.QueryStatsReq) (*gen.Qu
 	if direct == "" {
 		direct = "uplink"
 	}
+
+	cs := xrayapi.GetActiveClashServer()
+	if cs != nil && (tag == "proxy" || tag == "") {
+		if direct == "uplink" {
+			total := cs.GetUploadTotal()
+			delta := total - lastUplink
+			if delta < 0 {
+				delta = 0
+			}
+			lastUplink = total
+			return &gen.QueryStatsResp{Traffic: delta}, nil
+		} else {
+			total := cs.GetDownloadTotal()
+			delta := total - lastDownlink
+			if delta < 0 {
+				delta = 0
+			}
+			lastDownlink = total
+			return &gen.QueryStatsResp{Traffic: delta}, nil
+		}
+	}
+
+	instance := instanceManager.GetInstance()
+	if instance == nil {
+		return &gen.QueryStatsResp{Traffic: 0}, nil
+	}
+
 	name := fmt.Sprintf("outbound>>>%s>>>traffic>>>%s", tag, direct)
-	// reset=true so pynekoray can treat each poll as speed sample
 	traffic, err := xrayapi.GetNekoStats(instance, name, true)
 	if err != nil {
-		// missing counter means no traffic yet
 		return &gen.QueryStatsResp{Traffic: 0}, nil
 	}
 	return &gen.QueryStatsResp{Traffic: traffic}, nil
+}
+
+
+func (s *server) ListConnections(ctx context.Context, in *gen.EmptyReq) (*gen.ListConnectionsResp, error) {
+	cs := xrayapi.GetActiveClashServer()
+	if cs == nil {
+		return &gen.ListConnectionsResp{NekorayConnectionsJson: "[]"}, nil
+	}
+	return &gen.ListConnectionsResp{
+		NekorayConnectionsJson: cs.GetConnectionsJSON(),
+	}, nil
 }
 
 func (s *server) getOrCreateInstance(config *gen.LoadConfigReq) (*core.Instance, func(), error) {
