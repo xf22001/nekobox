@@ -17,7 +17,7 @@ import (
 	box "github.com/sagernet/sing-box"
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/boxapi"
-	"github.com/sagernet/sing-box/experimental/clashapi"
+	"github.com/sagernet/sing-box/common/trafficcontrol"
 	"github.com/sagernet/sing-box/experimental/v2rayapi"
 	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing/service"
@@ -209,16 +209,12 @@ func (s *server) ListConnections(ctx context.Context, in *gen.EmptyReq) (*gen.Li
 		return &gen.ListConnectionsResp{NekorayConnectionsJson: string(payload)}, nil
 	}
 
-	clashServer := service.FromContext[adapter.ClashServer](instance.Context())
-	if clashServer == nil {
-		return nil, errors.New("no clash server found")
-	}
-	clash, ok := clashServer.(*clashapi.Server)
-	if !ok || clash == nil {
-		return nil, errors.New("invalid clash server type")
+	trafficManager := service.PtrFromContext[trafficcontrol.Manager](instance.Context())
+	if trafficManager == nil {
+		return nil, errors.New("no traffic manager found")
 	}
 
-	connections := clash.TrafficManager().Connections()
+	connections := trafficManager.Connections()
 	items := make([]map[string]any, 0, len(connections))
 	for _, c := range connections {
 		if c == nil {
