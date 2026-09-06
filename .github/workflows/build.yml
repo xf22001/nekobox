@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       os:
-        description: 'Select OS'
+        description: "Select OS"
         required: true
-        default: 'ubuntu-22.04'
+        default: "ubuntu-22.04"
         type: choice
         options:
           - ubuntu-22.04
@@ -21,12 +21,12 @@ jobs:
         arch: [amd64, arm64]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.5'
+          go-version: "1.25.5"
 
       - name: Clone sing-box repository
         run: |
@@ -34,7 +34,6 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "DEPLOYMENT=$(pwd)/build" >> $GITHUB_ENV
           echo "GOOS=${{ github.event.inputs.os == 'windows-latest' && 'windows' || 'linux' }}" >> $GITHUB_ENV
           echo "GOARCH=${{ matrix.arch }}" >> $GITHUB_ENV
           echo "CGO_ENABLED=0" >> $GITHUB_ENV
@@ -51,29 +50,28 @@ jobs:
         run: |
           if [ "$GOOS" == "windows" ]; then
             if [ "$GOARCH" == "amd64" ]; then
-              DEST="$DEPLOYMENT/windows64"
+              DEST="build/windows64"
             elif [ "$GOARCH" == "arm64" ]; then
-              DEST="$DEPLOYMENT/windows-arm64"
+              DEST="build/windows-arm64"
             fi
           else
             if [ "$GOARCH" == "amd64" ]; then
-              DEST="$DEPLOYMENT/linux64"
+              DEST="build/linux64"
             elif [ "$GOARCH" == "arm64" ]; then
-              DEST="$DEPLOYMENT/linux-arm64"
+              DEST="build/linux-arm64"
             fi
           fi
-          
+
           if [ -z "$DEST" ]; then
               echo "Please set GOOS and GOARCH"
               exit 1
           fi
 
           mkdir -p "$DEST"
-
           CGO_ENABLED=$CGO_ENABLED go build -v -o "$DEST/nekobox_core" -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.event.inputs.os }}-${{ matrix.arch }}
-          path: ${{ env.DEPLOYMENT }}
+          path: build/

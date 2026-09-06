@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       os:
-        description: 'Select OS for Docker Build Environment'
+        description: "Select OS for Docker Build Environment"
         required: true
-        default: '22.04'
+        default: "22.04"
         type: choice
         options:
-          - '20.04'
-          - '22.04'
-          - '24.04'
+          - "20.04"
+          - "22.04"
+          - "24.04"
           - latest
 
 jobs:
@@ -22,12 +22,12 @@ jobs:
         arch: [amd64, arm64]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.5'
+          go-version: "1.25.5"
 
       - name: Clone sing-box repository
         run: |
@@ -35,8 +35,6 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "DEPLOYMENT=$(pwd)/build" >> $GITHUB_ENV
-          echo "DOCKER_DEPLOYMENT=/app/build" >> $GITHUB_ENV
           echo "GOOS=linux" >> $GITHUB_ENV
           echo "GOARCH=${{ matrix.arch }}" >> $GITHUB_ENV
           echo "CGO_ENABLED=0" >> $GITHUB_ENV
@@ -54,11 +52,9 @@ jobs:
           DOCKER_IMAGE="ubuntu:${{ github.event.inputs.os }}"
 
           if [ "$GOARCH" == "amd64" ]; then
-              DEST="$DEPLOYMENT/linux64"
-              DOCKER_DEST="$DOCKER_DEPLOYMENT/linux64"
+              DEST="build/linux64"
           elif [ "$GOARCH" == "arm64" ]; then
-              DEST="$DEPLOYMENT/linux-arm64"
-              DOCKER_DEST="$DOCKER_DEPLOYMENT/linux-arm64"
+              DEST="build/linux-arm64"
           fi
 
           if [ -z "$DEST" ]; then
@@ -76,31 +72,23 @@ jobs:
             -e CGO_ENABLED=$CGO_ENABLED \
             -e VERSION=$VERSION \
             -e TAGS="$TAGS" \
-            -e DEST="$DOCKER_DEST" \
+            -e DEST="$DEST" \
             $DOCKER_IMAGE \
-            /bin/bash -c "
+            /bin/bash -c '
+              set -e
               apt-get update && apt-get install -y wget curl gnupg git
-              wget https://go.dev/dl/go1.25.5.linux-amd64.tar.gz
+              wget -q https://go.dev/dl/go1.25.5.linux-amd64.tar.gz
               tar -C /usr/local -xzf go1.25.5.linux-amd64.tar.gz
-              export PATH=\$PATH:/usr/local/go/bin
+              export PATH=$PATH:/usr/local/go/bin
               go version
 
-              echo \"--- Environment Variables in Docker --- \"
-              env
-              echo \"--- End of Environment Variables --- \"
-
-              BUILD_COMMAND=\"CGO_ENABLED=\$CGO_ENABLED go build -v -o \$DEST/nekobox_core -trimpath -ldflags '-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=\$VERSION' -tags '\$TAGS' ./cmd/nekobox_core\"
-              echo \"--- Go Build Command: --- \"
-              echo \"\$BUILD_COMMAND\"
-              echo \"--- End of Go Build Command --- \"
-
-              eval \$BUILD_COMMAND
-
-              rm go1.25.5.linux-amd64.tar.gz && apt-get autoremove -y && apt-get clean
-            "
+              echo "Building for $GOOS/$GOARCH into $DEST/nekobox_core..."
+              CGO_ENABLED=$CGO_ENABLED go build -v -o "$DEST/nekobox_core" -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
+              rm go1.25.5.linux-amd64.tar.gz
+            '
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.event.inputs.os }}-${{ matrix.arch }}
-          path: ${{ env.DEPLOYMENT }}
+          path: build/
