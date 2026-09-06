@@ -6,12 +6,12 @@ on:
       os:
         description: 'Select OS for Docker Build Environment'
         required: true
-        default: '20.04'
+        default: '22.04'
         type: choice
         options:
-          - 20.04
-          - 22.04
-          - 24.04
+          - '20.04'
+          - '22.04'
+          - '24.04'
           - latest
 
 jobs:
@@ -22,12 +22,12 @@ jobs:
         arch: [amd64, arm64]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
-          go-version: ^1.25.10
+          go-version: '1.25.5'
 
       - name: Clone sing-box repository
         run: |
@@ -79,30 +79,28 @@ jobs:
             -e DEST="$DOCKER_DEST" \
             $DOCKER_IMAGE \
             /bin/bash -c "
-              apt-get update && apt-get install -y wget curl gnupg
-              wget https://go.dev/dl/go1.25.9.linux-amd64.tar.gz
-              tar -C /usr/local -xzf go1.25.9.linux-amd64.tar.gz
+              apt-get update && apt-get install -y wget curl gnupg git
+              wget https://go.dev/dl/go1.25.5.linux-amd64.tar.gz
+              tar -C /usr/local -xzf go1.25.5.linux-amd64.tar.gz
               export PATH=\$PATH:/usr/local/go/bin
               go version
 
-              # --- Debugging: Print Environment Variables ---
               echo \"--- Environment Variables in Docker --- \"
               env
               echo \"--- End of Environment Variables --- \"
 
-              # --- Debugging: Print the go build command ---
-              BUILD_COMMAND=\"CGO_ENABLED=\$CGO_ENABLED go build -v -o \$DEST -trimpath -ldflags '-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=\$VERSION' -tags '\$TAGS' ./cmd/nekobox_core\"
+              BUILD_COMMAND=\"CGO_ENABLED=\$CGO_ENABLED go build -v -o \$DEST/nekobox_core -trimpath -ldflags '-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=\$VERSION' -tags '\$TAGS' ./cmd/nekobox_core\"
               echo \"--- Go Build Command: --- \"
               echo \"\$BUILD_COMMAND\"
               echo \"--- End of Go Build Command --- \"
 
-              eval \$BUILD_COMMAND # Execute the go build command using eval
+              eval \$BUILD_COMMAND
 
-              rm go1.25.9.linux-amd64.tar.gz && apt-get autoremove -y && apt-get clean
+              rm go1.25.5.linux-amd64.tar.gz && apt-get autoremove -y && apt-get clean
             "
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.event.inputs.os }}-${{ matrix.arch }}
           path: ${{ env.DEPLOYMENT }}
