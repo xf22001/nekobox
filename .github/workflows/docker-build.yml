@@ -100,6 +100,24 @@ jobs:
               rm go1.26.7.linux-amd64.tar.gz && apt-get autoremove -y && apt-get clean
             "
 
+      - name: Bundle cronet shared library
+        run: |
+          # with_purego + CGO_ENABLED=0 时 cronet 动态库不会打进二进制，运行时从可执行文件
+          # 所在目录加载，必须与 cronet-go 版本配套，否则 naive 出站会段错误
+          if [ "$GOARCH" == "amd64" ]; then
+            DEST="$DEPLOYMENT/linux64"
+            CRONET_MODULE=linux_amd64
+          elif [ "$GOARCH" == "arm64" ]; then
+            DEST="$DEPLOYMENT/linux-arm64"
+            CRONET_MODULE=linux_arm64
+          else
+            echo "Unsupported GOARCH for cronet: $GOARCH"
+            exit 1
+          fi
+          go mod download "github.com/sagernet/cronet-go/lib/$CRONET_MODULE"
+          CRONET_DIR="$(go list -m -f '{{.Dir}}' "github.com/sagernet/cronet-go/lib/$CRONET_MODULE")"
+          cp -f "$CRONET_DIR/libcronet.so" "$DEST/"
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

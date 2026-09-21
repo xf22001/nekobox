@@ -35,6 +35,21 @@ function main() {
 	mkdir -p $DEST
 
 	CGO_ENABLED=$CGO_ENABLED go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
+
+	# with_purego + CGO_ENABLED=0 时 cronet 动态库不会打进二进制，运行时从可执行文件
+	# 所在目录加载，必须与 cronet-go 版本配套，否则 naive 出站会段错误，故随产物一起打包
+	case "$GOOS/$GOARCH" in
+	linux/amd64) CRONET_MODULE=linux_amd64; CRONET_LIB=libcronet.so ;;
+	linux/arm64) CRONET_MODULE=linux_arm64; CRONET_LIB=libcronet.so ;;
+	windows/amd64) CRONET_MODULE=windows_amd64; CRONET_LIB=libcronet.dll ;;
+	windows/arm64) CRONET_MODULE=windows_arm64; CRONET_LIB=libcronet.dll ;;
+	*)
+		echo "Unsupported platform for cronet: $GOOS/$GOARCH"
+		exit 1
+		;;
+	esac
+	CRONET_DIR="$(go list -m -f '{{.Dir}}' github.com/sagernet/cronet-go/lib/$CRONET_MODULE)"
+	cp -f "$CRONET_DIR/$CRONET_LIB" "$DEST/"
 }
 
 main $@
