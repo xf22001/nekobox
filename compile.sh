@@ -15,7 +15,7 @@ function main() {
 	export GOOS=linux
 	export GOARCH=amd64
 	export CGO_ENABLED=0
-	export TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_naive_outbound,with_purego,with_clash_api,with_v2ray_api,with_tailscale,with_ccm,with_ocm,badlinkname,tfogo_checklinkname0"
+	export TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_naive_outbound,with_purego,with_v2ray_api,with_clash_api,with_tailscale,with_ccm,with_ocm,with_cloudflared,with_usbip,with_openvpn,with_openconnect,badlinkname,tfogo_checklinkname0"
 
 	pushd sing-box
 	export GOHOSTOS="$(go env GOHOSTOS)"
@@ -34,7 +34,7 @@ function main() {
 
 	mkdir -p $DEST
 
-	CGO_ENABLED=$CGO_ENABLED go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
+	CGO_ENABLED=$CGO_ENABLED go build -v -o $DEST -trimpath -ldflags "-w -s -checklinkname=0 -X runtime.godebugDefault=multipathtcp=0,tlssha1=1 -buildid= -X github.com/sagernet/sing-box/constant.Version=$VERSION" -tags "$TAGS" ./cmd/nekobox_core
 
 	# with_purego + CGO_ENABLED=0 时 cronet 动态库不会打进二进制，运行时从可执行文件
 	# 所在目录加载，必须与 cronet-go 版本配套，否则 naive 出站会段错误，故随产物一起打包
